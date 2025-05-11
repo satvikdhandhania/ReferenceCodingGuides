@@ -1,0 +1,209 @@
+Go to the previous, next section.
+
+Running Programs Under GDB
+When you run a program under GDB, you must first generate debugging information when you compile it. You may start it with its arguments, if any, in an environment of your choice. You may redirect your program's input and output, debug an already running process, or kill a child process.
+
+Compiling for debugging
+In order to debug a program effectively, you need to generate debugging information when you compile it. This debugging information is stored in the object file; it describes the data type of each variable or function and the correspondence between source line numbers and addresses in the executable code.
+
+To request debugging information, specify the `-g' option when you run the compiler.
+
+Many C compilers are unable to handle the `-g' and `-O' options together. Using those compilers, you cannot generate optimized executables containing debugging information.
+
+GCC, the GNU C compiler, supports `-g' with or without `-O', making it possible to debug optimized code. We recommend that you always use `-g' whenever you compile a program. You may think your program is correct, but there is no sense in pushing your luck.
+
+When you debug a program compiled with `-g -O', remember that the optimizer is rearranging your code; the debugger shows you what is really there. Do not be too surprised when the execution path does not exactly match your source file! An extreme example: if you define a variable, but never use it, GDB never sees that variable--because the compiler optimizes it out of existence.
+
+Some things do not work as well with `-g -O' as with just `-g', particularly on machines with instruction scheduling. If in doubt, recompile with `-g' alone, and if this fixes the problem, please report it as a bug (including a test case!).
+
+Older versions of the GNU C compiler permitted a variant option `-gg' for debugging information. GDB no longer supports this format; if your GNU C compiler has this option, do not use it.
+
+
+Starting your program
+run
+r
+Use the run command to start your program under GDB. You must first specify the program name (except on VxWorks) with an argument to GDB (see section Getting In and Out of GDB), or by using the file or exec-file command (see section Commands to specify files).
+If you are running your program in an execution environment that supports processes, run creates an inferior process and makes that process run your program. (In environments without processes, run jumps to the start of your program.)
+
+The execution of a program is affected by certain information it receives from its superior. GDB provides ways to specify this information, which you must do before starting your program. (You can change it after starting your program, but such changes only affect your program the next time you start it.) This information may be divided into four categories:
+
+The arguments.
+Specify the arguments to give your program as the arguments of the run command. If a shell is available on your target, the shell is used to pass the arguments, so that you may use normal conventions (such as wildcard expansion or variable substitution) in describing the arguments. In Unix systems, you can control which shell is used with the SHELL environment variable. See section Your program's arguments.
+The environment.
+Your program normally inherits its environment from GDB, but you can use the GDB commands set environment and unset environment to change parts of the environment that affect your program. See section Your program's environment.
+The working directory.
+Your program inherits its working directory from GDB. You can set the GDB working directory with the cd command in GDB. See section Your program's working directory.
+The standard input and output.
+Your program normally uses the same device for standard input and standard output as GDB is using. You can redirect input and output in the run command line, or you can use the tty command to set a different device for your program. See section Your program's input and output.
+Warning: While input and output redirection work, you cannot use pipes to pass the output of the program you are debugging to another program; if you attempt this, GDB is likely to wind up debugging the wrong program.
+
+When you issue the run command, your program begins to execute immediately. See section Stopping and Continuing, for discussion of how to arrange for your program to stop. Once your program has stopped, you may call functions in your program, using the print or call commands. See section Examining Data.
+
+If the modification time of your symbol file has changed since the last time GDB read its symbols, GDB discards its symbol table, and reads it again. When it does this, GDB tries to retain your current breakpoints.
+
+Your program's arguments
+The arguments to your program can be specified by the arguments of the run command. They are passed to a shell, which expands wildcard characters and performs redirection of I/O, and thence to your program. Your SHELL environment variable (if it exists) specifies what shell GDB uses. If you do not define SHELL, GDB uses /bin/sh.
+
+run with no arguments uses the same arguments used by the previous run, or those set by the set args command.
+
+set args
+Specify the arguments to be used the next time your program is run. If set args has no arguments, run executes your program with no arguments. Once you have run your program with arguments, using set args before the next run is the only way to run it again without arguments.
+
+show args
+Show the arguments to give your program when it is started.
+Your program's environment
+The environment consists of a set of environment variables and their values. Environment variables conventionally record such things as your user name, your home directory, your terminal type, and your search path for programs to run. Usually you set up environment variables with the shell and they are inherited by all the other programs you run. When debugging, it can be useful to try running your program with a modified environment without having to start GDB over again.
+
+path directory
+Add directory to the front of the PATH environment variable (the search path for executables), for both GDB and your program. You may specify several directory names, separated by `:' or whitespace. If directory is already in the path, it is moved to the front, so it is searched sooner.
+You can use the string `$cwd' to refer to whatever is the current working directory at the time GDB searches the path. If you use `.' instead, it refers to the directory where you executed the path command. GDB replaces `.' in the directory argument (with the current path) before adding directory to the search path.
+
+
+show paths
+Display the list of search paths for executables (the PATH environment variable).
+
+show environment [varname]
+Print the value of environment variable varname to be given to your program when it starts. If you do not supply varname, print the names and values of all environment variables to be given to your program. You can abbreviate environment as env.
+
+set environment varname [=] value
+Set environment variable varname to value. The value changes for your program only, not for GDB itself. value may be any string; the values of environment variables are just strings, and any interpretation is supplied by your program itself. The value parameter is optional; if it is eliminated, the variable is set to a null value.
+For example, this command:
+
+set env USER = foo
+tells a Unix program, when subsequently run, that its user is named `foo'. (The spaces around `=' are used for clarity here; they are not actually required.)
+
+
+unset environment varname
+Remove variable varname from the environment to be passed to your program. This is different from `set env varname ='; unset environment removes the variable from the environment, rather than assigning it an empty value.
+Warning: GDB runs your program using the shell indicated by your SHELL environment variable if it exists (or /bin/sh if not). If your SHELL variable names a shell that runs an initialization file--such as `.cshrc' for C-shell, or `.bashrc' for BASH--any variables you set in that file affect your program. You may wish to move setting of environment variables to files that are only run when you sign on, such as `.login' or `.profile'.
+
+Your program's working directory
+Each time you start your program with run, it inherits its working directory from the current working directory of GDB. The GDB working directory is initially whatever it inherited from its parent process (typically the shell), but you can specify a new working directory in GDB with the cd command.
+
+The GDB working directory also serves as a default for the commands that specify files for GDB to operate on. See section Commands to specify files.
+
+cd directory
+Set the GDB working directory to directory.
+
+pwd
+Print the GDB working directory.
+Your program's input and output
+By default, the program you run under GDB does input and output to the same terminal that GDB uses. GDB switches the terminal to its own terminal modes to interact with you, but it records the terminal modes your program was using and switches back to them when you continue running your program.
+
+info terminal
+Displays information recorded by GDB about the terminal modes your program is using.
+You can redirect your program's input and/or output using shell redirection with the run command. For example,
+
+run > outfile
+starts your program, diverting its output to the file `outfile'.
+
+Another way to specify where your program should do input and output is with the tty command. This command accepts a file name as argument, and causes this file to be the default for future run commands. It also resets the controlling terminal for the child process, for future run commands. For example,
+
+tty /dev/ttyb
+directs that processes started with subsequent run commands default to do input and output on the terminal `/dev/ttyb' and have that as their controlling terminal.
+
+An explicit redirection in run overrides the tty command's effect on the input/output device, but not its effect on the controlling terminal.
+
+When you use the tty command or redirect input in the run command, only the input for your program is affected. The input for GDB still comes from your terminal.
+
+
+Debugging an already-running process
+attach process-id
+This command attaches to a running process--one that was started outside GDB. (info files shows your active targets.) The command takes as argument a process ID. The usual way to find out the process-id of a Unix process is with the ps utility, or with the `jobs -l' shell command.
+attach does not repeat if you press RET a second time after executing the command.
+
+To use attach, your program must be running in an environment which supports processes; for example, attach does not work for programs on bare-board targets that lack an operating system. You must also have permission to send the process a signal.
+
+When using attach, you should first use the file command to specify the program running in the process and load its symbol table. See section Commands to specify files.
+
+The first thing GDB does after arranging to debug the specified process is to stop it. You can examine and modify an attached process with all the GDB commands that are ordinarily available when you start processes with run. You can insert breakpoints; you can step and continue; you can modify storage. If you would rather the process continue running, you may use the continue command after attaching GDB to the process.
+
+detach
+When you have finished debugging the attached process, you can use the detach command to release it from GDB control. Detaching the process continues its execution. After the detach command, that process and GDB become completely independent once more, and you are ready to attach another process or start one with run. detach does not repeat if you press RET again after executing the command.
+If you exit GDB or use the run command while you have an attached process, you kill that process. By default, GDB asks for confirmation if you try to do either of these things; you can control whether or not you need to confirm by using the set confirm command (see section Optional warnings and messages).
+
+Killing the child process
+kill
+Kill the child process in which your program is running under GDB.
+This command is useful if you wish to debug a core dump instead of a running process. GDB ignores any core dump file while your program is running.
+
+On some operating systems, a program cannot be executed outside GDB while you have breakpoints set on it inside GDB. You can use the kill command in this situation to permit running your program outside the debugger.
+
+The kill command is also useful if you wish to recompile and relink your program, since on many systems it is impossible to modify an executable file while it is running in a process. In this case, when you next type run, GDB notices that the file has changed, and reads the symbol table again (while trying to preserve your current breakpoint settings).
+
+Additional process information
+Some operating systems provide a facility called `/proc' that can be used to examine the image of a running process using file-system subroutines. If GDB is configured for an operating system with this facility, the command info proc is available to report on several kinds of information about the process running your program.
+
+info proc
+Summarize available information about the process.
+
+info proc mappings
+Report on the address ranges accessible in the program, with information on whether your program may read, write, or execute each range.
+
+info proc times
+Starting time, user CPU time, and system CPU time for your program and its children.
+
+info proc id
+Report on the process IDs related to your program: its own process ID, the ID of its parent, the process group ID, and the session ID.
+
+info proc status
+General information on the state of the process. If the process is stopped, this report includes the reason for stopping, and any signal received.
+info proc all
+Show all the above information about the process.
+Debugging programs with multiple threads
+In some operating systems, a single program may have more than one thread of execution. The precise semantics of threads differ from one operating system to another, but in general the threads of a single program are akin to multiple processes--except that they share one address space (that is, they can all examine and modify the same variables). On the other hand, each thread has its own registers and execution stack, and perhaps private memory.
+
+GDB provides these facilities for debugging multi-thread programs:
+
+automatic notification of new threads
+`thread threadno', a command to switch among threads
+`info threads', a command to inquire about existing threads
+thread-specific breakpoints
+Warning: These facilities are not yet available on every GDB configuration where the operating system supports threads. If your GDB does not support threads, these commands have no effect. For example, a system without thread support shows no output from `info threads', and always rejects the thread command, like this:
+(gdb) info threads
+(gdb) thread 1
+Thread ID 1 not known.  Use the "info threads" command to
+see the IDs of currently known threads.
+The GDB thread debugging facility allows you to observe all threads while your program runs--but whenever GDB takes control, one thread in particular is always the focus of debugging. This thread is called the current thread. Debugging commands show program information from the perspective of the current thread.
+
+Whenever GDB detects a new thread in your program, it displays the target system's identification for the thread with a message in the form `[New systag]'. systag is a thread identifier whose form varies depending on the particular system. For example, on LynxOS, you might see
+
+[New process 35 thread 27]
+when GDB notices a new thread. In contrast, on an SGI system, the systag is simply something like `process 368', with no further qualifier.
+
+
+For debugging purposes, GDB associates its own thread number--always a single integer--with each thread in your program.
+
+info threads
+Display a summary of all threads currently in your program. GDB displays for each thread (in this order):
+the thread number assigned by GDB
+the target system's thread identifier (systag)
+the current stack frame summary for that thread
+An asterisk `*' to the left of the GDB thread number indicates the current thread.
+
+For example,
+
+(gdb) info threads
+  3 process 35 thread 27  0x34e5 in sigpause ()
+  2 process 35 thread 23  0x34e5 in sigpause ()
+* 1 process 35 thread 13  main (argc=1, argv=0x7ffffff8)
+    at threadtest.c:68
+thread threadno
+Make thread number threadno the current thread. The command argument threadno is the internal GDB thread number, as shown in the first field of the `info threads' display. GDB responds by displaying the system identifier of the thread you selected, and its current stack frame summary:
+(gdb) thread 2
+[Switching to process 35 thread 23]
+0x34e5 in sigpause ()
+As with the `[New ...]' message, the form of the text after `Switching to' depends on your system's conventions for identifying threads.
+
+Whenever GDB stops your program, due to a breakpoint or a signal, it automatically selects the thread where that breakpoint or signal happened. GDB alerts you to the context switch with a message of the form `[Switching to systag]' to identify the thread.
+
+See section Stopping and starting multi-thread programs, for more information about how GDB behaves when you stop and start programs with multiple threads.
+
+See section Setting watchpoints, for information about watchpoints in programs with multiple threads.
+
+Debugging programs with multiple processes
+GDB has no special support for debugging programs which create additional processes using the fork function. When a program forks, GDB will continue to debug the parent process and the child process will run unimpeded. If you have set a breakpoint in any code which the child then executes, the child will get a SIGTRAP signal which (unless it catches the signal) will cause it to terminate.
+
+However, if you want to debug the child process there is a workaround which isn't too painful. Put a call to sleep in the code which the child process executes after the fork. It may be useful to sleep only if a certain environment variable is set, or a certain file exists, so that the delay need not occur when you don't want to run GDB on the child. While the child is sleeping, use the ps program to get its process ID. Then tell GDB (a new invocation of GDB if you are also debugging the parent process) to attach to the child process (see section Debugging an already-running process). From that point on you can debug the child process just like any other process which you attached to.
+
+Go to the previous, next section.

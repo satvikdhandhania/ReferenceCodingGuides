@@ -1,0 +1,48 @@
+git init
+git add .
+git commit -m "Satvik"
+git remote add origin link
+git remote -v
+git push origin master      use -f for force 
+
+
+
+
+
+
+PULL
+
+
+
+git clone linkonrightside->git@github.com:whatever target-folder-name
+
+
+
+OR
+
+git init
+git remote add origin PATH/TO/REPO
+git fetch
+git checkout -t origin/master
+
+ 
+
+
+Configure 
+
+git config --global user.name "NewUser"
+git config --global user.email newuser@example.com
+
+Turn on the credential helper so that Git will save your password in memory for some time. By default, Git will cache your password for 15 minutes.
+
+    On the command line, enter the following:
+
+    # Set git to use the credential memory cache
+
+    git config --global credential.helper cache
+    To change the default password cache timeout, enter the following:
+
+    git config --global credential.helper 'cache --timeout=3600'
+    # Set the cache to timeout after 1 hour (setting is in seconds)
+
+
